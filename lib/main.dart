@@ -706,7 +706,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     decoration: const InputDecoration(
                       labelText: 'Checked baggage weight (kg)',
                       hintText: 'e.g. 25.5',
-                      helperText: 'Enter a non-negative number.',
                       prefixIcon: Icon(Icons.luggage),
                     ),
                   ),
@@ -729,7 +728,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     decoration: const InputDecoration(
                       labelText: 'Excess baggage rate (RM/kg)',
                       hintText: 'e.g. 12.50',
-                      helperText: 'Enter a non-negative rate.',
                       prefixIcon:
                           Icon(Icons.payments_outlined),
                     ),
