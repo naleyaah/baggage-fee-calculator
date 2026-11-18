@@ -1,3 +1,6 @@
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -8,6 +11,8 @@ void main() {
 // APPLICATION COLOURS
 const Color navy = Color(0xFF142D52);
 const Color pink = Color(0xFFFF4F99);
+const Color softPink = Color(0xFFFFE8F1);
+const Color darkPink = Color(0xFFE63E82);
 
 // MAIN APPLICATION
 class MyApp extends StatelessWidget {
@@ -19,9 +24,7 @@ class MyApp extends StatelessWidget {
       title: 'SKYFARE Baggage Fee Calculator',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: navy,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: navy),
         scaffoldBackgroundColor: const Color(0xFFF5F8FD),
         useMaterial3: true,
         inputDecorationTheme: InputDecorationTheme(
@@ -46,9 +49,7 @@ class AppDrawer extends StatelessWidget {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => page,
-      ),
+      MaterialPageRoute(builder: (context) => page),
       (route) => false,
     );
   }
@@ -85,7 +86,6 @@ class AppDrawer extends StatelessWidget {
               ],
             ),
           ),
-
           ListTile(
             leading: const Icon(Icons.home_outlined),
             title: const Text('Home'),
@@ -93,7 +93,6 @@ class AppDrawer extends StatelessWidget {
               navigateTo(context, const WelcomePage());
             },
           ),
-
           ListTile(
             leading: const Icon(Icons.calculate_outlined),
             title: const Text('Calculator'),
@@ -101,7 +100,6 @@ class AppDrawer extends StatelessWidget {
               navigateTo(context, const CalculatorPage());
             },
           ),
-
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('About'),
@@ -141,7 +139,6 @@ class WelcomePage extends StatelessWidget {
                     size: 42,
                   ),
                   const SizedBox(height: 12),
-
                   const Text(
                     'SKYFARE',
                     style: TextStyle(
@@ -150,17 +147,13 @@ class WelcomePage extends StatelessWidget {
                       color: navy,
                     ),
                   ),
-
                   const SizedBox(height: 8),
-
                   const Text(
                     'Travel lighter, worry less.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 18),
                   ),
-
                   const SizedBox(height: 24),
-
                   Image.asset(
                     'assets/images/luggage.png',
                     height: 275,
@@ -173,17 +166,13 @@ class WelcomePage extends StatelessWidget {
                       );
                     },
                   ),
-
                   const SizedBox(height: 24),
-
                   const Text(
                     'Estimate your excess baggage fee before you fly.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 16),
                   ),
-
                   const SizedBox(height: 28),
-
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -201,9 +190,7 @@ class WelcomePage extends StatelessWidget {
                       label: const Text('Get Started'),
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
                   TextButton(
                     onPressed: () {
                       Navigator.push(
@@ -249,49 +236,202 @@ class _CalculatorPageState extends State<CalculatorPage> {
   double? serviceTax;
   double? totalPayable;
 
-  String errorMessage = '';
+  // NOTIFICATION MANAGEMENT
+  OverlayEntry? _notificationEntry;
+  Timer? _notificationTimer;
 
   @override
   void dispose() {
+    _removeNotification();
     weightController.dispose();
     rateController.dispose();
     super.dispose();
+  }
+
+  // REMOVE PREVIOUS NOTIFICATION
+  void _removeNotification() {
+    _notificationTimer?.cancel();
+    _notificationTimer = null;
+
+    _notificationEntry?.remove();
+    _notificationEntry?.dispose();
+    _notificationEntry = null;
+  }
+
+  // VALIDATE NUMERIC INPUT
+  String? validateNumber(String input, String fieldName) {
+    final value = input.trim();
+
+    if (value.isEmpty) {
+      return 'Please complete all required fields.';
+    }
+
+    // Only digits with one optional decimal point.
+    if (!RegExp(r'^\d+(\.\d+)?$').hasMatch(value)) {
+      if (fieldName == 'baggage weight') {
+        return 'Please enter a valid baggage weight.';
+      }
+
+      return 'Please enter a valid baggage rate.';
+    }
+
+    final number = double.tryParse(value);
+
+    if (number == null || !number.isFinite) {
+      return 'Please enter a smaller value.';
+    }
+
+    return null;
+  }
+
+  // FLOATING TOP NOTIFICATION
+  void showTopNotification(String message) {
+    FocusScope.of(context).unfocus();
+
+    // Remove old notification before displaying a new one.
+    _removeNotification();
+
+    final overlay = Overlay.of(context);
+
+    final entry = OverlayEntry(
+      builder: (overlayContext) {
+        final topPadding =
+            MediaQuery.of(overlayContext).padding.top;
+
+        return Positioned(
+          top: topPadding + 12,
+          left: 20,
+          right: 20,
+          child: Material(
+            color: Colors.transparent,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 500,
+                ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: softPink,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFFFC7DC),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: 0.12,
+                        ),
+                        blurRadius: 14,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: darkPink,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: const TextStyle(
+                            color: navy,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    _notificationEntry = entry;
+    overlay.insert(entry);
+
+    // Automatically disappear after 3 seconds.
+    _notificationTimer = Timer(
+      const Duration(seconds: 3),
+      () {
+        _removeNotification();
+      },
+    );
+  }
+
+  // CLEAR PREVIOUS CALCULATION
+  void clearResult() {
+    excessWeight = null;
+    excessCharge = null;
+    serviceTax = null;
+    totalPayable = null;
   }
 
   // CALCULATE BAGGAGE FEE
   void calculateFee() {
     FocusScope.of(context).unfocus();
 
-    final double? weight =
-        double.tryParse(weightController.text.trim());
-
-    final double? rate =
-        double.tryParse(rateController.text.trim());
-
-    if (weight == null ||
-        rate == null ||
-        !weight.isFinite ||
-        !rate.isFinite ||
-        weight < 0 ||
-        rate < 0) {
+    // CHECK EMPTY FIELDS
+    if (weightController.text.trim().isEmpty ||
+        rateController.text.trim().isEmpty) {
       setState(() {
-        errorMessage =
-            'Please enter valid, non-negative numbers for weight and rate.';
-
-        excessWeight = null;
-        excessCharge = null;
-        serviceTax = null;
-        totalPayable = null;
+        clearResult();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please enter a valid baggage weight and excess baggage rate.'          ),
-        ),
+      showTopNotification(
+        'Please complete all required fields.',
       );
       return;
     }
+
+    // VALIDATE BAGGAGE WEIGHT
+    final weightError = validateNumber(
+      weightController.text,
+      'baggage weight',
+    );
+
+    if (weightError != null) {
+      setState(() {
+        clearResult();
+      });
+
+      showTopNotification(weightError);
+      return;
+    }
+
+    // VALIDATE BAGGAGE RATE
+    final rateError = validateNumber(
+      rateController.text,
+      'excess baggage rate',
+    );
+
+    if (rateError != null) {
+      setState(() {
+        clearResult();
+      });
+
+      showTopNotification(rateError);
+      return;
+    }
+
+    final double weight =
+        double.parse(weightController.text.trim());
+
+    final double rate =
+        double.parse(rateController.text.trim());
 
     // BAGGAGE ALLOWANCE
     double allowance;
@@ -314,23 +454,24 @@ class _CalculatorPageState extends State<CalculatorPage> {
     final double tax = charge * 0.08;
     final double total = charge + tax;
 
-    if (!charge.isFinite ||
+    if (!excess.isFinite ||
+        !charge.isFinite ||
         !tax.isFinite ||
         !total.isFinite) {
       setState(() {
-        errorMessage =
-            'Values are too large. Please enter smaller numbers.';
-
-        excessWeight = null;
-        excessCharge = null;
-        serviceTax = null;
-        totalPayable = null;
+        clearResult();
       });
+
+      showTopNotification(
+        'Please enter smaller values.',
+      );
       return;
     }
 
+    // Remove error notification after successful calculation.
+    _removeNotification();
+
     setState(() {
-      errorMessage = '';
       excessWeight = excess;
       excessCharge = charge;
       serviceTax = tax;
@@ -342,16 +483,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
   void resetForm() {
     FocusScope.of(context).unfocus();
 
+    _removeNotification();
+
     weightController.clear();
     rateController.clear();
 
     setState(() {
       ticketClass = 'Economy';
-      errorMessage = '';
-      excessWeight = null;
-      excessCharge = null;
-      serviceTax = null;
-      totalPayable = null;
+      clearResult();
     });
   }
 
@@ -414,20 +553,15 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 ),
               ),
             ),
-
             RadioGroup<String>(
               groupValue: ticketClass,
               onChanged: (value) {
                 if (value != null) {
+                  _removeNotification();
+
                   setState(() {
                     ticketClass = value;
-
-                    // Clear previous result when class changes
-                    excessWeight = null;
-                    excessCharge = null;
-                    serviceTax = null;
-                    totalPayable = null;
-                    errorMessage = '';
+                    clearResult();
                   });
                 }
               },
@@ -442,7 +576,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     activeColor: navy,
                     contentPadding: EdgeInsets.zero,
                   ),
-
                   RadioListTile<String>(
                     title: Text('Business Class'),
                     subtitle: Text(
@@ -465,7 +598,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-
       appBar: AppBar(
         title: const Text('Baggage Fee Calculator'),
         actions: [
@@ -483,7 +615,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
           ),
         ],
       ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -519,7 +650,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
-                          child:Column(
+                          child: Column(
                             crossAxisAlignment:
                                 CrossAxisAlignment.start,
                             children: [
@@ -570,9 +701,12 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     keyboardType:
                         const TextInputType.numberWithOptions(
                       decimal: true,
+                      signed: true,
                     ),
                     decoration: const InputDecoration(
                       labelText: 'Checked baggage weight (kg)',
+                      hintText: 'e.g. 25.5',
+                      helperText: 'Enter a non-negative number.',
                       prefixIcon: Icon(Icons.luggage),
                     ),
                   ),
@@ -590,10 +724,12 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     keyboardType:
                         const TextInputType.numberWithOptions(
                       decimal: true,
+                      signed: true,
                     ),
                     decoration: const InputDecoration(
-                      labelText:
-                          'Excess baggage rate (RM/kg)',
+                      labelText: 'Excess baggage rate (RM/kg)',
+                      hintText: 'e.g. 12.50',
+                      helperText: 'Enter a non-negative rate.',
                       prefixIcon:
                           Icon(Icons.payments_outlined),
                     ),
@@ -606,8 +742,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     height: 50,
                     child: FilledButton.icon(
                       onPressed: calculateFee,
-                      icon:
-                          const Icon(Icons.calculate_outlined),
+                      icon: const Icon(Icons.calculate_outlined),
                       label: const Text('Calculate Fee'),
                     ),
                   ),
@@ -625,18 +760,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
                   ),
 
                   const SizedBox(height: 20),
-
-                  // ERROR MESSAGE
-                  if (errorMessage.isNotEmpty)
-                    Padding(
-                      padding:
-                          const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        errorMessage,
-                        style:
-                            const TextStyle(color: Colors.red),
-                      ),
-                    ),
 
                   // CALCULATION RESULT
                   if (totalPayable != null &&
@@ -659,26 +782,20 @@ class _CalculatorPageState extends State<CalculatorPage> {
                                 color: navy,
                               ),
                             ),
-
                             const SizedBox(height: 16),
-
                             resultRow(
                               'Excess baggage weight',
                               '${excessWeight?.toStringAsFixed(2)} kg',
                             ),
-
                             resultRow(
                               'Excess baggage charge',
                               'RM ${excessCharge?.toStringAsFixed(2)}',
                             ),
-
                             resultRow(
                               'Service tax (8%)',
                               'RM ${serviceTax?.toStringAsFixed(2)}',
                             ),
-
                             const Divider(height: 28),
-
                             resultRow(
                               'Total payable',
                               'RM ${totalPayable?.toStringAsFixed(2)}',
@@ -739,11 +856,9 @@ class AboutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-
       appBar: AppBar(
         title: const Text('About SKYFARE'),
       ),
-
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 500),
@@ -764,9 +879,7 @@ class AboutPage extends StatelessWidget {
                         );
                       },
                     ),
-
                     const SizedBox(height: 10),
-
                     const Text(
                       'SKYFARE',
                       style: TextStyle(
@@ -775,28 +888,22 @@ class AboutPage extends StatelessWidget {
                         color: navy,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     const Text(
                       'Baggage Fee Calculator',
                       textAlign: TextAlign.center,
                     ),
-
                     const Divider(height: 35),
-
                     const ListTile(
                       leading: Icon(Icons.person_outline),
                       title: Text('Author'),
                       subtitle: Text('Nur Aleeya Hanis'),
                     ),
-
                     const ListTile(
                       leading: Icon(Icons.badge_outlined),
                       title: Text('Matric Number'),
                       subtitle: Text('2025237172'),
                     ),
-
                     const ListTile(
                       leading: Icon(Icons.school_outlined),
                       title: Text('Course'),
@@ -804,18 +911,14 @@ class AboutPage extends StatelessWidget {
                         'ICT602 - Mobile Technology Development',
                       ),
                     ),
-
                     const SizedBox(height: 14),
-
                     TextButton.icon(
                       onPressed: () => openRepo(context),
                       icon: const Icon(Icons.link),
                       label:
                           const Text('Open GitHub Repository'),
                     ),
-
                     const SizedBox(height: 14),
-
                     const Text(
                       '© 2026 Nur Aleeya Hanis. All rights reserved.',
                       textAlign: TextAlign.center,
