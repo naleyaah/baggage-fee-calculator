@@ -287,8 +287,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please enter valid weight and rate.',
-          ),
+            'Please enter a valid baggage weight and excess baggage rate.'          ),
         ),
       );
       return;
