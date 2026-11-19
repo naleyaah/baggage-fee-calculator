@@ -281,6 +281,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
       return 'Please enter a smaller value.';
     }
 
+    if (fieldName == 'baggage weight' && number > 100) {
+    return 'Baggage weight cannot exceed 100 kg.';
+    }
+
     return null;
   }
 
